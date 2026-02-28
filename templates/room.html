@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PartyHub room – watch, listen, or read together in real-time.">
+  <title>Room – PartyHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="mode-watch" id="roomBody">
+
+  <!-- Username Modal -->
+  <div class="modal-overlay hidden" id="usernameModal">
+    <div class="modal">
+      <h2>👋 What's your name?</h2>
+      <p>Enter a display name to join the party. Everyone will see it.</p>
+      <div class="form-group">
+        <label for="usernameInput">Display Name</label>
+        <input type="text" id="usernameInput" placeholder="e.g. Alex" autofocus autocomplete="off" maxlength="24">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="confirmUsername()">Join Party →</button>
+    </div>
+  </div>
+
+  <!-- Change Content Modal -->
+  <div class="modal-overlay hidden" id="changeContentModal">
+    <div class="modal">
+      <h2 id="changeContentTitle">✏️ Change Content</h2>
+      <p>Update the current room's content link.</p>
+
+      <!-- YouTube Input -->
+      <div id="modalWatchFields" style="display:none;">
+        <div class="form-group">
+          <label for="newYtUrl">New YouTube URL</label>
+          <input type="url" id="newYtUrl" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+      </div>
+
+      <!-- Spotify Input -->
+      <div id="modalListenFields" style="display:none;">
+        <div class="form-group">
+          <label for="newSpotifyUrl">New Spotify URL</label>
+          <input type="url" id="newSpotifyUrl" placeholder="https://open.spotify.com/track/...">
+        </div>
+      </div>
+
+      <!-- Read Input -->
+      <div id="modalReadFields" style="display:none;">
+        <div class="form-group">
+          <label for="newPageUrls">New Image URLs (one per line)</label>
+          <textarea id="newPageUrls" rows="5" placeholder="https://..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary btn-full" onclick="closeChangeContentModal()">Cancel</button>
+        <button class="btn btn-primary btn-full" onclick="updateContent()">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Reaction Overlay -->
+  <div class="reaction-overlay" id="reactionOverlay"></div>
+
+  <!-- Room Layout -->
+  <div class="room-layout">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <a href="/" class="topbar-brand">🎉 PartyHub</a>
+        <span class="topbar-sep">/</span>
+        <span id="roomTitle">Loading…</span>
+      </div>
+      <div class="topbar-right">
+        <span class="mode-pill watch" id="modePill">🎬 Watch</span>
+        <div class="viewer-pill">
+          <div class="viewer-dot"></div>
+          <span id="viewerCount">0</span>
+        </div>
+        <span class="room-id-badge" id="roomIdBadge" title="Room ID">—</span>
+        <span class="host-badge" id="hostBadge">👑 Host</span>
+        <button class="btn btn-ghost btn-sm" id="changeContentBtn" onclick="openChangeContentModal()"
+          style="display:none;">✏️ Change Content</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyLink()">🔗 Share</button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="room-content">
+
+      <!-- ===== WATCH PANEL (YouTube) ===== -->
+      <div class="watch-panel" id="watchPanel">
+        <div id="ytPlayerContainer">
+          <div class="video-placeholder" id="ytPlaceholder">
+            <div class="video-placeholder-icon">🎬</div>
+            <p>No video loaded — the host didn't add a YouTube URL</p>
+          </div>
+          <!-- YouTube IFrame API injects here -->
+          <div id="ytPlayer"></div>
+        </div>
+        <div class="watch-controls">
+          <button class="btn btn-secondary btn-sm" id="playPauseBtn" onclick="ytTogglePlay()">▶ Play / Pause</button>
+          <div class="reaction-bar">
+            <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+            <button class="reaction-btn" onclick="sendReaction('😮')">😮</button>
+            <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+            <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+            <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+            <button class="reaction-btn" onclick="sendReaction('💯')">💯</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== LISTEN PANEL (Spotify) ===== -->
+      <div class="listen-panel" id="listenPanel" style="display:none;">
+        <div class="listen-bg"></div>
+        <div class="spotify-wrapper">
+          <div id="spotifyPlaceholder" class="read-placeholder" style="padding:40px 0;">
+            <span style="font-size:2.8rem;">🎵</span>
+            <p>No Spotify track/album added yet</p>
+          </div>
+          <div id="spotify-embed"></div>
+        </div>
+        <div class="listen-controls">
+          <button class="btn btn-secondary btn-sm" id="spPlayBtn" onclick="spotifyPlay()" style="display:none;">▶
+            Play</button>
+          <button class="btn btn-secondary btn-sm" id="spPauseBtn" onclick="spotifyPause()" style="display:none;">⏸
+            Pause</button>
+        </div>
+        <p class="listen-hint">Play/pause syncs for everyone · Use Spotify controls for seek</p>
+        <div class="reaction-bar" style="justify-content:center;padding-bottom:16px;position:relative;z-index:1;">
+          <button class="reaction-btn" onclick="sendReaction('🎵')">🎵</button>
+          <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+          <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+          <button class="reaction-btn" onclick="sendReaction('💃')">💃</button>
+          <button class="reaction-btn" onclick="sendReaction('🎶')">🎶</button>
+        </div>
+      </div>
+
+      <!-- ===== READ PANEL (Book / Manga) ===== -->
+      <div class="read-panel" id="readPanel" style="display:none;">
+        <div class="page-viewer">
+          <div class="read-placeholder" id="readPlaceholder">
+            <span style="font-size:2.8rem;">📚</span>
+            <p>No pages loaded</p>
+          </div>
+          <img id="pageImage" src="" alt="Page" style="display:none;">
+        </div>
+        <div class="read-controls">
+          <button class="nav-btn" id="prevBtn" onclick="changePage(-1)" disabled>‹</button>
+          <div class="page-counter"><span id="currentPage">—</span> / <span id="totalPages">—</span></div>
+          <button class="nav-btn" id="nextBtn" onclick="changePage(1)" disabled>›</button>
+          <span class="host-only-note" id="hostOnlyHint" style="display:none; margin-left:12px;">You are the host · Use
+            arrows to turn pages</span>
+        </div>
+      </div>
+
+      <!-- ===== CHAT PANEL ===== -->
+      <div class="chat-panel">
+        <div class="chat-header">💬 Live Chat</div>
+        <div id="chatBox"></div>
+        <div class="chat-input-area">
+          <input type="text" id="messageInput" placeholder="Say something…" autocomplete="off">
+          <button class="btn btn-primary btn-icon" onclick="sendMessage()" title="Send">↑</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Spotify IFrame API -->
+  <script src="https://open.spotify.com/embed-podcast/iframe-api/v1" async></script>
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- SocketIO -->
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <!-- App -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>initRoom();</script>
+
+</body>
+
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="PartyHub – Watch YouTube together, listen to Spotify in sync, or read manga/books as a group.">
+  <title>PartyHub – Party Together</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="mode-watch">
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <div class="brand-icon">🎉</div>
+      PartyHub
+    </a>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="hero">
+      <div class="hero-eyebrow">✨ Real-time sync • No account needed • Free</div>
+      <h1>Watch. Listen. Read.<br><span class="gradient-text">Together.</span></h1>
+      <p class="hero-sub">
+        Create a room, pick your mode, share the link — and enjoy
+        YouTube, Spotify, or manga with friends in perfect sync.
+      </p>
+    </div>
+
+    <!-- Mode selector -->
+    <div class="mode-grid">
+      <a href="/create?mode=watch" class="mode-card watch" onclick="setMode('watch')">
+        <span class="mode-icon">🎬</span>
+        <div class="mode-name">Watch Party</div>
+        <div class="mode-desc">YouTube videos in perfect sync with play/pause/seek for everyone</div>
+        <span class="mode-badge">YouTube</span>
+      </a>
+      <a href="/create?mode=listen" class="mode-card listen" onclick="setMode('listen')">
+        <span class="mode-icon">🎵</span>
+        <div class="mode-name">Listen Together</div>
+        <div class="mode-desc">Spotify tracks, albums, or playlists synced in real-time for the room</div>
+        <span class="mode-badge">Spotify</span>
+      </a>
+      <a href="/create?mode=read" class="mode-card read" onclick="setMode('read')">
+        <span class="mode-icon">📚</span>
+        <div class="mode-name">Read Club</div>
+        <div class="mode-desc">Manga, books or comics — host controls the pages for everyone</div>
+        <span class="mode-badge">Book · Manga</span>
+      </a>
+    </div>
+
+    <!-- Join existing room -->
+    <div class="join-section">
+      <div class="divider">or join an existing room</div>
+      <div class="join-row">
+        <input type="text" id="joinRoomId" placeholder="Enter Room ID (e.g. A3K9PX)" style="text-transform:uppercase;"
+          autocomplete="off">
+        <button id="joinBtn" class="btn btn-secondary" onclick="joinExistingRoom()">Join →</button>
+      </div>
+      <div id="joinRoomIdError"
+        style="color:#ef4444;font-size:0.8rem;margin-top:8px;min-height:1.2em;text-align:center;"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.activeElement.id === 'joinRoomId') joinExistingRoom();
+    });
+  </script>
+</body>
+
+</html>

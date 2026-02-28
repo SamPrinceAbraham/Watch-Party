@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create a new PartyHub room and invite friends.">
+  <title>Create Room – PartyHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="mode-watch" id="createBody">
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <div class="brand-icon">🎉</div>
+      PartyHub
+    </a>
+  </nav>
+
+  <div class="page-wrapper">
+    <div style="width:100%;max-width:500px;">
+      <a href="/" class="btn btn-ghost btn-sm" style="margin-bottom:24px;display:inline-flex;">← Back</a>
+
+      <div class="card">
+        <h1 style="font-size:1.65rem;font-weight:800;margin-bottom:6px;letter-spacing:-0.02em;">
+          Create a Room
+        </h1>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:28px;line-height:1.6;">
+          Choose your mode, name your room, and share the link.
+        </p>
+
+        <!-- Mode Tabs -->
+        <div class="mode-select-tabs">
+          <button class="mode-tab watch active" id="tabWatch" onclick="switchMode('watch')">🎬 Watch</button>
+          <button class="mode-tab listen" id="tabListen" onclick="switchMode('listen')">🎵 Listen</button>
+          <button class="mode-tab read" id="tabRead" onclick="switchMode('read')">📚 Read</button>
+        </div>
+
+        <div class="form-group">
+          <label for="roomName">Room Name</label>
+          <input type="text" id="roomName" placeholder="e.g. Friday Night Movie" autofocus autocomplete="off">
+          <div id="roomNameError" style="color:#ef4444;font-size:0.8rem;margin-top:6px;min-height:1em;"></div>
+        </div>
+
+        <!-- Watch fields -->
+        <div id="watchFields">
+          <div class="form-group">
+            <label for="ytUrl">YouTube URL</label>
+            <input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+        </div>
+
+        <!-- Listen fields -->
+        <div id="listenFields" style="display:none;">
+          <div class="form-group">
+            <label for="spotifyUrl">Spotify URL</label>
+            <input type="url" id="spotifyUrl" placeholder="https://open.spotify.com/track/...">
+            <div style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">
+              Supports tracks, albums, and playlists
+            </div>
+          </div>
+        </div>
+
+        <!-- Read fields -->
+        <div id="readFields" style="display:none;">
+          <div class="form-group">
+            <label for="pageUrls">Image URLs (one per line)</label>
+            <textarea id="pageUrls" rows="5"
+              placeholder="https://example.com/manga/page1.jpg&#10;https://example.com/manga/page2.jpg&#10;https://example.com/manga/page3.jpg"></textarea>
+            <div style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">
+              Each line = one page. Host controls navigation for everyone.
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="selectedMode" value="watch">
+        <button class="btn btn-primary btn-full" onclick="createRoom()" style="margin-top:10px;">
+          🚀 Create Room
+        </button>
+      </div>
+
+      <p style="text-align:center;margin-top:18px;color:var(--text-muted);font-size:0.78rem;">
+        A unique Room ID is generated automatically
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Apply mode from URL param
+    (function () {
+      const m = new URLSearchParams(location.search).get('mode') || 'watch';
+      switchMode(m);
+    })();
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.activeElement.id !== 'pageUrls') createRoom();
+    });
+  </script>
+</body>
+
+</html>
