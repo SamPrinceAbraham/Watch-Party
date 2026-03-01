@@ -769,6 +769,7 @@ function toggleChat() {
   const toggleBtn = document.getElementById('chatToggleBtn');
   if (!chatPanel) return;
   chatPanel.classList.toggle('chat-open');
+  document.body.classList.toggle('chat-is-open');
   if (toggleBtn) {
     toggleBtn.textContent = chatPanel.classList.contains('chat-open') ? '✕' : '💬';
   }
