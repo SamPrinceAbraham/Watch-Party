@@ -15,6 +15,7 @@ let isHost = false;
 let ytPlayer = null;
 let ytReady = false;
 let ytSyncing = false;   // guard flag
+let lastKnownYtTime = 0; // track for seek detection
 
 // Spotify
 let spotifyController = null;
@@ -136,6 +137,8 @@ function createYtPlayer(videoId, startTime, isPlaying) {
   const placeholder = document.getElementById('ytPlaceholder');
   if (placeholder) placeholder.style.display = 'none';
 
+  lastKnownYtTime = startTime || 0;
+
   ytPlayer = new YT.Player('ytPlayer', {
     width: '100%', height: '100%',
     videoId: videoId,
@@ -153,10 +156,17 @@ function createYtPlayer(videoId, startTime, isPlaying) {
       onStateChange: (e) => {
         if (ytSyncing) return;
         const t = e.target.getCurrentTime();
+
         if (e.data === YT.PlayerState.PLAYING) {
+          // Detect seek: if time jumped more than 3s from last known
+          if (Math.abs(t - lastKnownYtTime) > 3) {
+            socket.emit('yt_seek', { room: roomId, time: t });
+          }
           socket.emit('yt_play', { room: roomId, time: t });
+          lastKnownYtTime = t;
         } else if (e.data === YT.PlayerState.PAUSED) {
           socket.emit('yt_pause', { room: roomId, time: t });
+          lastKnownYtTime = t;
         }
       },
     }
@@ -165,7 +175,9 @@ function createYtPlayer(videoId, startTime, isPlaying) {
   // Periodic time broadcast (drift correction)
   setInterval(() => {
     if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && !ytSyncing) {
-      socket.emit('yt_time_update', { room: roomId, time: ytPlayer.getCurrentTime() });
+      const t = ytPlayer.getCurrentTime();
+      lastKnownYtTime = t;
+      socket.emit('yt_time_update', { room: roomId, time: t });
     }
   }, 4000);
 }
@@ -333,16 +345,23 @@ function loadLocalVideo(path, time, playing) {
   const placeholder = document.getElementById('localPlaceholder');
   if (placeholder) placeholder.style.display = 'none';
 
-  if (!localPlayer) setupLocalVideo();
+  // Always ensure local player is set up
+  setupLocalVideo();
+
+  if (!localPlayer) return;
 
   localPlayer.src = `/video/${roomId}`;
   localPlayer.style.display = 'block';
-  localPlayer.currentTime = time || 0;
 
-  if (playing) {
-    const p = localPlayer.play();
-    if (p !== undefined) p.catch(e => console.log('Autoplay blocked:', e));
-  }
+  // Wait for metadata before seeking
+  localPlayer.addEventListener('loadedmetadata', function onMeta() {
+    localPlayer.removeEventListener('loadedmetadata', onMeta);
+    localPlayer.currentTime = time || 0;
+    if (playing) {
+      const p = localPlayer.play();
+      if (p !== undefined) p.catch(e => console.log('Autoplay blocked:', e));
+    }
+  }, { once: true });
 }
 
 // =============================================
@@ -432,7 +451,8 @@ socket.on('yt_play', (time) => {
   ytSyncing = true;
   ytPlayer.seekTo(time, true);
   ytPlayer.playVideo();
-  setTimeout(() => { ytSyncing = false; }, 600);
+  lastKnownYtTime = time;
+  setTimeout(() => { ytSyncing = false; }, 1500);
 });
 
 socket.on('yt_pause', (time) => {
@@ -440,21 +460,24 @@ socket.on('yt_pause', (time) => {
   ytSyncing = true;
   ytPlayer.seekTo(time, true);
   ytPlayer.pauseVideo();
-  setTimeout(() => { ytSyncing = false; }, 600);
+  lastKnownYtTime = time;
+  setTimeout(() => { ytSyncing = false; }, 1500);
 });
 
 socket.on('yt_seek', (time) => {
   if (!ytPlayer || typeof ytPlayer.seekTo !== 'function') return;
   ytSyncing = true;
   ytPlayer.seekTo(time, true);
-  setTimeout(() => { ytSyncing = false; }, 600);
+  lastKnownYtTime = time;
+  setTimeout(() => { ytSyncing = false; }, 1500);
 });
 
 socket.on('yt_resync', (serverTime) => {
   if (!ytPlayer || typeof ytPlayer.seekTo !== 'function') return;
   ytSyncing = true;
   ytPlayer.seekTo(serverTime, true);
-  setTimeout(() => { ytSyncing = false; }, 600);
+  lastKnownYtTime = serverTime;
+  setTimeout(() => { ytSyncing = false; }, 1500);
 });
 
 // Spotify sync events
@@ -493,7 +516,7 @@ socket.on('local_play', (time) => {
   localPlayer.currentTime = time;
   const p = localPlayer.play();
   if (p !== undefined) p.catch(e => console.log('Play blocked', e));
-  setTimeout(() => { localSyncing = false; }, 600);
+  setTimeout(() => { localSyncing = false; }, 1500);
 });
 
 socket.on('local_pause', (time) => {
@@ -501,21 +524,21 @@ socket.on('local_pause', (time) => {
   localSyncing = true;
   localPlayer.currentTime = time;
   localPlayer.pause();
-  setTimeout(() => { localSyncing = false; }, 600);
+  setTimeout(() => { localSyncing = false; }, 1500);
 });
 
 socket.on('local_seek', (time) => {
   if (!localPlayer) return;
   localSyncing = true;
   localPlayer.currentTime = time;
-  setTimeout(() => { localSyncing = false; }, 600);
+  setTimeout(() => { localSyncing = false; }, 1500);
 });
 
 socket.on('local_resync', (serverTime) => {
   if (!localPlayer) return;
   localSyncing = true;
   localPlayer.currentTime = serverTime;
-  setTimeout(() => { localSyncing = false; }, 600);
+  setTimeout(() => { localSyncing = false; }, 1500);
 });
 
 // Content updated (host changed video/song/book)
@@ -735,6 +758,25 @@ function updateContent() {
 
   socket.emit('set_content', data);
   closeChangeContentModal();
+}
+
+// =============================================
+//  MOBILE CHAT TOGGLE
+// =============================================
+
+function toggleChat() {
+  const chatPanel = document.querySelector('.chat-panel');
+  const toggleBtn = document.getElementById('chatToggleBtn');
+  if (!chatPanel) return;
+  chatPanel.classList.toggle('chat-open');
+  if (toggleBtn) {
+    toggleBtn.textContent = chatPanel.classList.contains('chat-open') ? '✕' : '💬';
+  }
+  // Scroll chat to bottom when opening
+  if (chatPanel.classList.contains('chat-open')) {
+    const chatBox = document.getElementById('chatBox');
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+  }
 }
 
 // =============================================

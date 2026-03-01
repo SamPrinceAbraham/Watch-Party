@@ -1110,7 +1110,91 @@ textarea::placeholder {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ---- Local Panel ---- */
+.local-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  min-width: 0;
+  position: relative;
+}
+
+/* ---- Mobile Chat Toggle ---- */
+.chat-toggle-btn {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mode-color, #7c3aed), #4f46e5);
+  color: white;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 250;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all var(--transition);
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+.chat-toggle-btn .badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
 /* ---- Responsive ---- */
+
+/* ===== Desktop (> 1024px) — default layout ===== */
+
+/* ===== Tablet (769px – 1024px) ===== */
+@media (max-width: 1024px) {
+  .chat-panel {
+    width: 260px;
+  }
+
+  .topbar-right {
+    gap: 6px;
+  }
+
+  #roomTitle {
+    max-width: 140px;
+  }
+
+  .btn-ghost.btn-sm {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+  }
+
+  .room-id-badge {
+    font-size: 0.68rem;
+    padding: 3px 7px;
+  }
+
+  .reaction-btn {
+    padding: 5px 8px;
+    font-size: 1rem;
+  }
+}
+
+/* ===== Small Tablet / Large Phone (481px – 768px) ===== */
 @media (max-width: 768px) {
   .room-content {
     flex-direction: column;
@@ -1118,28 +1202,400 @@ textarea::placeholder {
 
   .chat-panel {
     width: 100%;
-    height: 240px;
+    height: 220px;
     border-left: none;
     border-top: 1px solid var(--border);
   }
 
-  .topbar {
-    padding: 0 12px;
-  }
-
-  .reaction-bar {
+  /* Mobile: chat is hidden by default, toggled via JS */
+  .chat-panel {
     display: none;
   }
 
-  .navbar {
-    padding: 14px 18px;
+  .chat-panel.chat-open {
+    display: flex;
   }
 
+  .chat-toggle-btn {
+    display: flex;
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 0 10px;
+    height: auto;
+    min-height: 48px;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .topbar-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar-brand {
+    font-size: 0.85rem;
+  }
+
+  #roomTitle {
+    max-width: 120px;
+    font-size: 0.85rem;
+  }
+
+  .topbar-right {
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .host-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+
+  .mode-pill {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+  }
+
+  .viewer-pill {
+    font-size: 0.75rem;
+    padding: 3px 9px;
+  }
+
+  /* Hide non-essential topbar items */
+  .room-id-badge {
+    display: none;
+  }
+
+  #changeContentBtn {
+    font-size: 0.72rem;
+    padding: 6px 10px;
+  }
+
+  /* Watch controls */
+  .watch-controls {
+    padding: 8px 10px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .reaction-bar {
+    gap: 3px;
+    margin-left: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .reaction-btn {
+    padding: 8px 10px;
+    font-size: 1.1rem;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Buttons touch-friendly - 44px min */
+  .btn-sm {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    min-height: 44px;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Nav buttons (Read mode) */
+  .nav-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Listen panel */
+  .spotify-wrapper {
+    padding: 16px 12px 0;
+  }
+
+  #spotify-embed {
+    height: 280px;
+  }
+
+  .listen-controls {
+    padding: 14px 12px;
+  }
+
+  /* Navbar */
+  .navbar {
+    padding: 12px 16px;
+  }
+
+  /* Create / Landing pages */
   .join-row {
     flex-direction: column;
   }
 
   .mode-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-wrapper {
+    padding: 80px 16px 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .hero-sub {
+    font-size: 0.92rem;
+    margin-bottom: 36px;
+  }
+
+  .card {
+    padding: 24px 18px;
+  }
+
+  .modal {
+    padding: 24px 20px;
+    margin: 16px;
+  }
+
+  .modal h2 {
+    font-size: 1.25rem;
+  }
+}
+
+/* ===== Phone (≤ 480px) ===== */
+@media (max-width: 480px) {
+  .topbar-left {
+    gap: 6px;
+  }
+
+  .topbar-brand {
+    font-size: 0.78rem;
+  }
+
+  .topbar-sep {
+    display: none;
+  }
+
+  #roomTitle {
+    max-width: 90px;
+    font-size: 0.78rem;
+  }
+
+  .topbar-right {
+    gap: 4px;
+  }
+
+  .mode-pill {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+  }
+
+  .viewer-pill {
+    font-size: 0.7rem;
+    padding: 2px 7px;
+  }
+
+  .host-badge {
+    display: none;
+  }
+
+  #changeContentBtn {
+    font-size: 0.68rem;
+    padding: 5px 8px;
+  }
+
+  .btn-ghost.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  /* Chat panel */
+  .chat-panel {
+    height: 200px;
+  }
+
+  .chat-header {
+    padding: 10px 12px;
+    font-size: 0.78rem;
+  }
+
+  .chat-message {
+    gap: 6px;
+  }
+
+  .chat-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.58rem;
+  }
+
+  .chat-text {
+    font-size: 0.78rem;
+  }
+
+  .chat-input-area {
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .chat-input-area input {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  /* Watch controls compact */
+  .watch-controls {
+    padding: 6px 8px;
+  }
+
+  /* Listen panel compact */
+  #spotify-embed {
+    height: 240px;
+  }
+
+  .listen-hint {
+    font-size: 0.7rem;
+    padding-bottom: 12px;
+  }
+
+  /* Read controls compact */
+  .read-controls {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .page-counter {
+    font-size: 0.8rem;
+    min-width: 60px;
+  }
+
+  /* Modal compact */
+  .modal {
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal h2 {
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+  }
+
+  .modal p {
+    font-size: 0.82rem;
+    margin-bottom: 18px;
+  }
+
+  /* Hero compact */
+  .hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    margin-bottom: 18px;
+  }
+
+  .hero-sub {
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  .mode-card {
+    padding: 20px 16px;
+  }
+
+  .mode-icon {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+
+  .mode-name {
+    font-size: 0.95rem;
+  }
+
+  .mode-desc {
+    font-size: 0.75rem;
+  }
+
+  /* Form compact */
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  label {
+    font-size: 0.72rem;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="url"],
+  textarea {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .mode-select-tabs {
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+
+  .mode-tab {
+    padding: 8px 4px;
+    font-size: 0.72rem;
+  }
+
+  /* Page wrapper compact */
+  .page-wrapper {
+    padding: 70px 12px 30px;
+  }
+
+  .card {
+    padding: 20px 14px;
+  }
+
+  /* Toast */
+  .toast {
+    font-size: 0.78rem;
+    padding: 9px 18px;
+    bottom: 80px;
+  }
+
+  .chat-toggle-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* ===== Landscape phone fix ===== */
+@media (max-height: 500px) and (orientation: landscape) {
+  .room-content {
+    flex-direction: row;
+  }
+
+  .chat-panel {
+    width: 220px;
+    height: auto;
+    border-left: 1px solid var(--border);
+    border-top: none;
+  }
+
+  .watch-panel,
+  .listen-panel,
+  .read-panel,
+  .local-panel {
+    flex: 1;
+    min-height: 0;
   }
 }
