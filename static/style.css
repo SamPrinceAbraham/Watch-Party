@@ -1134,7 +1134,9 @@ textarea::placeholder {
   border: none;
   font-size: 1.4rem;
   cursor: pointer;
-  z-index: 1100;
+  z-index: 2000;
+  touch-action: manipulation;
+  pointer-events: auto !important;
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
   transition: all var(--transition);
   align-items: center;
@@ -1206,11 +1208,35 @@ textarea::placeholder {
   }
 
   body.chat-is-open .chat-toggle-btn {
-    bottom: calc(60vh + 30px);
+    bottom: calc(60vh + 20px) !important;
+    background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6) !important;
+    animation: chat-button-pulse 1.5s infinite !important;
+  }
+
+  @keyframes chat-button-pulse {
+    0% {
+      transform: scale(1.1);
+      box-shadow: 0 0 0px rgba(239, 68, 68, 0);
+    }
+
+    50% {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+
+    100% {
+      transform: scale(1.1);
+      box-shadow: 0 0 0px rgba(239, 68, 68, 0);
+    }
   }
 
   .chat-toggle-btn {
     display: flex;
+    width: 60px;
+    /* Slightly larger targets */
+    height: 60px;
   }
 
   /* Video area needs to take remaining height */

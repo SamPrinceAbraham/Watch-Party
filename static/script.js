@@ -597,6 +597,11 @@ function initRoom() {
   applyMode(mode);
   updateModePill(mode);
 
+  const toggleBtn = document.getElementById('chatToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', toggleChat);
+  }
+
   // Show username modal
   const modal = document.getElementById('usernameModal');
   if (modal) modal.classList.remove('hidden');
@@ -770,9 +775,11 @@ function toggleChat() {
   if (!chatPanel) return;
   chatPanel.classList.toggle('chat-open');
   document.body.classList.toggle('chat-is-open');
+  const isOpen = chatPanel.classList.contains('chat-open');
   if (toggleBtn) {
-    toggleBtn.textContent = chatPanel.classList.contains('chat-open') ? '✕' : '💬';
+    toggleBtn.textContent = isOpen ? '✕' : '💬';
   }
+  if (isOpen) showToast('💬 Chat Opened');
   // Scroll chat to bottom when opening
   if (chatPanel.classList.contains('chat-open')) {
     const chatBox = document.getElementById('chatBox');
