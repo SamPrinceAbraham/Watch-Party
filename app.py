@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+import os
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO, join_room, leave_room, emit
 
 app = Flask(__name__)
@@ -38,6 +39,17 @@ def api_check_room(room_id):
             "viewers": len(room["users"])
         })
     return jsonify({"exists": False}), 404
+
+
+@app.route('/video/<room_id>')
+def serve_video(room_id):
+    room = rooms_data.get(room_id.upper())
+    if not room or not room.get("local_path"):
+        return "Video not found", 404
+    path = room["local_path"]
+    if not os.path.exists(path):
+        return "File not found on server", 404
+    return send_file(path, conditional=True)
 
 
 # -----------------------
@@ -94,6 +106,9 @@ def handle_join(data):
             "spotify_playing": False,
             "pages": data.get("pages", []),
             "current_page": 0,
+            "local_path": data.get("localPath", ""),
+            "local_time": 0,
+            "local_playing": False,
         }
     else:
         # If room exists but has no content yet, and this joiner provided some (e.g. host rejoining)
@@ -101,6 +116,7 @@ def handle_join(data):
         if not r.get("yt_url") and data.get("ytUrl"): r["yt_url"] = data["ytUrl"]
         if not r.get("spotify_uri") and data.get("spotifyUri"): r["spotify_uri"] = data["spotifyUri"]
         if not r.get("pages") and data.get("pages"): r["pages"] = data["pages"]
+        if not r.get("local_path") and data.get("localPath"): r["local_path"] = data["localPath"]
 
     room = rooms_data[room_id]
     room["users"][request.sid] = username
@@ -126,6 +142,10 @@ def handle_join(data):
         # Read
         "pages": room["pages"],
         "current_page": room["current_page"],
+        # Local
+        "local_path": room["local_path"],
+        "local_time": room["local_time"],
+        "local_playing": room["local_playing"],
     }, to=request.sid)
 
     emit("viewer_count", len(room["users"]), to=room_id)
@@ -170,9 +190,17 @@ def handle_yt_time(data):
     room_id = data["room"].upper()
     if room_id not in rooms_data:
         return
-    server_time = rooms_data[room_id]["yt_time"]
-    if abs(data.get("time", 0) - server_time) > 2:
-        emit("yt_resync", server_time, to=request.sid)
+    
+    room = rooms_data[room_id]
+    if request.sid == room["host"]:
+        # Host updates the server's source of truth
+        room["yt_time"] = data.get("time", 0)
+    else:
+        # Viewers check their time against the server's time
+        server_time = room["yt_time"]
+        # If viewer is off by more than 2 seconds, force them to sync
+        if abs(data.get("time", 0) - server_time) > 2:
+            emit("yt_resync", server_time, to=request.sid)
 
 
 # -----------------------
@@ -221,6 +249,47 @@ def handle_page_change(data):
 
 
 # -----------------------
+# LOCAL VIDEO SYNC
+# -----------------------
+
+@socketio.on("local_play")
+def handle_local_play(data):
+    room_id = data["room"].upper()
+    if room_id in rooms_data:
+        rooms_data[room_id]["local_time"] = data.get("time", 0)
+        rooms_data[room_id]["local_playing"] = True
+    emit("local_play", data.get("time", 0), to=room_id, include_self=False)
+
+@socketio.on("local_pause")
+def handle_local_pause(data):
+    room_id = data["room"].upper()
+    if room_id in rooms_data:
+        rooms_data[room_id]["local_time"] = data.get("time", 0)
+        rooms_data[room_id]["local_playing"] = False
+    emit("local_pause", data.get("time", 0), to=room_id, include_self=False)
+
+@socketio.on("local_seek")
+def handle_local_seek(data):
+    room_id = data["room"].upper()
+    if room_id in rooms_data:
+        rooms_data[room_id]["local_time"] = data.get("time", 0)
+    emit("local_seek", data.get("time", 0), to=room_id, include_self=False)
+
+@socketio.on("local_time_update")
+def handle_local_time(data):
+    room_id = data["room"].upper()
+    if room_id not in rooms_data:
+        return
+    room = rooms_data[room_id]
+    if request.sid == room["host"]:
+        room["local_time"] = data.get("time", 0)
+    else:
+        server_time = room["local_time"]
+        if abs(data.get("time", 0) - server_time) > 2:
+            emit("local_resync", server_time, to=request.sid)
+
+
+# -----------------------
 # ROOM MANAGEMENT
 # -----------------------
 
@@ -247,11 +316,16 @@ def handle_set_content(data):
     elif mode == "read":
         room["pages"] = data.get("pages", [])
         room["current_page"] = 0
+    elif mode == "local":
+        room["local_path"] = data.get("localPath", "")
+        room["local_time"] = 0
+        room["local_playing"] = False
 
     emit("content_updated", {
         "yt_url": room.get("yt_url"),
         "spotify_uri": room.get("spotify_uri"),
-        "pages": room.get("pages")
+        "pages": room.get("pages"),
+        "local_path": room.get("local_path")
     }, to=room_id)
 
 

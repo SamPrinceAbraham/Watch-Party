@@ -34,6 +34,7 @@
           <button class="mode-tab watch active" id="tabWatch" onclick="switchMode('watch')">🎬 Watch</button>
           <button class="mode-tab listen" id="tabListen" onclick="switchMode('listen')">🎵 Listen</button>
           <button class="mode-tab read" id="tabRead" onclick="switchMode('read')">📚 Read</button>
+          <button class="mode-tab local" id="tabLocal" onclick="switchMode('local')">🎥 Local</button>
         </div>
 
         <div class="form-group">
@@ -69,6 +70,17 @@
               placeholder="https://example.com/manga/page1.jpg&#10;https://example.com/manga/page2.jpg&#10;https://example.com/manga/page3.jpg"></textarea>
             <div style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">
               Each line = one page. Host controls navigation for everyone.
+            </div>
+          </div>
+        </div>
+
+        <!-- Local fields -->
+        <div id="localFields" style="display:none;">
+          <div class="form-group">
+            <label for="localPath">Local Video Path</label>
+            <input type="text" id="localPath" placeholder="C:\Movies\video.mp4">
+            <div style="color:var(--text-muted);font-size:0.75rem;margin-top:6px;">
+              Absolute path to a video file on the server.
             </div>
           </div>
         </div>

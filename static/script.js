@@ -24,6 +24,10 @@ let spSyncing = false;
 let pages = [];
 let currentPage = 0;
 
+// Local
+let localPlayer = null;
+let localSyncing = false;
+
 // =============================================
 //  HELPERS
 // =============================================
@@ -57,7 +61,7 @@ function showError(id, msg) {
 
 // Apply mode class to <body> for CSS accent switching
 function applyMode(mode) {
-  document.body.classList.remove('mode-watch', 'mode-listen', 'mode-read');
+  document.body.classList.remove('mode-watch', 'mode-listen', 'mode-read', 'mode-local');
   document.body.classList.add('mode-' + mode);
 }
 
@@ -287,6 +291,61 @@ function changePage(delta) {
 }
 
 // =============================================
+//  LOCAL VIDEO (Local Mode)
+// =============================================
+
+function setupLocalVideo() {
+  localPlayer = document.getElementById('localPlayer');
+  if (!localPlayer) return;
+
+  // For host, keep controls. For viewers, turn them off to block desync
+  if (isHost) {
+    localPlayer.setAttribute('controls', 'true');
+    localPlayer.style.pointerEvents = 'auto';
+  } else {
+    localPlayer.removeAttribute('controls');
+    localPlayer.style.pointerEvents = 'none';
+  }
+
+  // Host event listeners
+  localPlayer.onplay = () => {
+    if (localSyncing || !isHost) return;
+    socket.emit('local_play', { room: roomId, time: localPlayer.currentTime });
+  };
+  localPlayer.onpause = () => {
+    if (localSyncing || !isHost) return;
+    socket.emit('local_pause', { room: roomId, time: localPlayer.currentTime });
+  };
+  localPlayer.onseeked = () => {
+    if (localSyncing || !isHost) return;
+    socket.emit('local_seek', { room: roomId, time: localPlayer.currentTime });
+  };
+
+  // Drift correction loop
+  setInterval(() => {
+    if (localPlayer && !localSyncing && localPlayer.src) {
+      socket.emit('local_time_update', { room: roomId, time: localPlayer.currentTime });
+    }
+  }, 4000);
+}
+
+function loadLocalVideo(path, time, playing) {
+  const placeholder = document.getElementById('localPlaceholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  if (!localPlayer) setupLocalVideo();
+
+  localPlayer.src = `/video/${roomId}`;
+  localPlayer.style.display = 'block';
+  localPlayer.currentTime = time || 0;
+
+  if (playing) {
+    const p = localPlayer.play();
+    if (p !== undefined) p.catch(e => console.log('Autoplay blocked:', e));
+  }
+}
+
+// =============================================
 //  SOCKET EVENTS
 // =============================================
 
@@ -336,6 +395,11 @@ socket.on('room_state', (state) => {
   if (roomMode === 'read' && state.pages && state.pages.length) {
     loadPages(state.pages, state.current_page);
   }
+
+  // Local
+  if (roomMode === 'local' && state.local_path) {
+    loadLocalVideo(state.local_path, state.local_time, state.local_playing);
+  }
 });
 
 socket.on('viewer_count', (count) => {
@@ -354,6 +418,10 @@ socket.on('host_changed', () => {
   const changeBtn = document.getElementById('changeContentBtn');
   if (changeBtn) changeBtn.style.display = 'inline-flex';
   if (roomMode === 'read') enableNavButtons();
+  if (roomMode === 'local' && localPlayer) {
+    localPlayer.setAttribute('controls', 'true');
+    localPlayer.style.pointerEvents = 'auto';
+  }
   showToast('👑 You are now the host');
   appendChat({ username: 'System', text: '👑 You are now the host' });
 });
@@ -418,6 +486,38 @@ socket.on('page_change', (page) => {
   renderPage(currentPage);
 });
 
+// Local mode sync
+socket.on('local_play', (time) => {
+  if (!localPlayer) return;
+  localSyncing = true;
+  localPlayer.currentTime = time;
+  const p = localPlayer.play();
+  if (p !== undefined) p.catch(e => console.log('Play blocked', e));
+  setTimeout(() => { localSyncing = false; }, 600);
+});
+
+socket.on('local_pause', (time) => {
+  if (!localPlayer) return;
+  localSyncing = true;
+  localPlayer.currentTime = time;
+  localPlayer.pause();
+  setTimeout(() => { localSyncing = false; }, 600);
+});
+
+socket.on('local_seek', (time) => {
+  if (!localPlayer) return;
+  localSyncing = true;
+  localPlayer.currentTime = time;
+  setTimeout(() => { localSyncing = false; }, 600);
+});
+
+socket.on('local_resync', (serverTime) => {
+  if (!localPlayer) return;
+  localSyncing = true;
+  localPlayer.currentTime = serverTime;
+  setTimeout(() => { localSyncing = false; }, 600);
+});
+
 // Content updated (host changed video/song/book)
 socket.on('content_updated', (data) => {
   showToast('🔄 Content updated by host');
@@ -437,6 +537,8 @@ socket.on('content_updated', (data) => {
     initSpotifyEmbed(data.spotify_uri);
   } else if (roomMode === 'read' && data.pages) {
     loadPages(data.pages, 0);
+  } else if (roomMode === 'local' && data.local_path) {
+    loadLocalVideo(data.local_path, 0, false);
   }
 });
 
@@ -452,6 +554,7 @@ function emitJoin() {
     ytUrl: getParam('ytUrl') || '',
     spotifyUri: getParam('spotifyUri') || '',
     pages: getParam('pages') ? JSON.parse(getParam('pages')) : [],
+    localPath: getParam('localPath') || '',
   });
 }
 
@@ -489,11 +592,11 @@ function confirmUsername() {
 // =============================================
 
 function showPanel(mode) {
-  ['watchPanel', 'listenPanel', 'readPanel'].forEach(id => {
+  ['watchPanel', 'listenPanel', 'readPanel', 'localPanel'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  const targets = { watch: 'watchPanel', listen: 'listenPanel', read: 'readPanel' };
+  const targets = { watch: 'watchPanel', listen: 'listenPanel', read: 'readPanel', local: 'localPanel' };
   const el = document.getElementById(targets[mode]);
   if (el) el.style.display = 'flex';
 }
@@ -501,7 +604,7 @@ function showPanel(mode) {
 function updateModePill(mode) {
   const pill = document.getElementById('modePill');
   if (!pill) return;
-  const labels = { watch: '🎬 Watch', listen: '🎵 Listen', read: '📚 Read' };
+  const labels = { watch: '🎬 Watch', listen: '🎵 Listen', read: '📚 Read', local: '🎥 Local' };
   pill.textContent = labels[mode] || mode;
   pill.className = 'mode-pill ' + mode;
 }
@@ -511,7 +614,7 @@ function updateModePill(mode) {
 // =============================================
 
 function switchMode(mode) {
-  ['watch', 'listen', 'read'].forEach(m => {
+  ['watch', 'listen', 'read', 'local'].forEach(m => {
     const tab = document.getElementById('tab' + m.charAt(0).toUpperCase() + m.slice(1));
     if (tab) tab.className = 'mode-tab ' + m + (m === mode ? ' active' : '');
     const fields = document.getElementById(m + 'Fields');
@@ -545,6 +648,9 @@ function createRoom() {
       const pages = raw.split('\n').map(l => l.trim()).filter(Boolean);
       params.set('pages', JSON.stringify(pages));
     }
+  } else if (mode === 'local') {
+    const localPath = document.getElementById('localPath')?.value.trim();
+    if (localPath) params.set('localPath', localPath);
   }
 
   window.location.href = '/room?' + params.toString();
@@ -588,7 +694,7 @@ function openChangeContentModal() {
   if (!modal) return;
 
   // Show correct fields
-  ['modalWatch', 'modalListen', 'modalRead'].forEach(m => {
+  ['modalWatch', 'modalListen', 'modalRead', 'modalLocal'].forEach(m => {
     const el = document.getElementById(m + 'Fields');
     if (el) el.style.display = 'none';
   });
@@ -621,6 +727,10 @@ function updateContent() {
     const raw = document.getElementById('newPageUrls')?.value.trim();
     if (!raw) return;
     data.pages = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  } else if (roomMode === 'local') {
+    const localPath = document.getElementById('newLocalPath')?.value.trim();
+    if (!localPath) return;
+    data.localPath = localPath;
   }
 
   socket.emit('set_content', data);

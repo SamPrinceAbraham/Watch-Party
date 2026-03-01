@@ -54,6 +54,14 @@
         </div>
       </div>
 
+      <!-- Local Input -->
+      <div id="modalLocalFields" style="display:none;">
+        <div class="form-group">
+          <label for="newLocalPath">New Local Video Path</label>
+          <input type="text" id="newLocalPath" placeholder="C:\Movies\video.mp4">
+        </div>
+      </div>
+
       <div style="display:flex; gap:10px;">
         <button class="btn btn-secondary btn-full" onclick="closeChangeContentModal()">Cancel</button>
         <button class="btn btn-primary btn-full" onclick="updateContent()">Update</button>
@@ -158,6 +166,25 @@
           <button class="nav-btn" id="nextBtn" onclick="changePage(1)" disabled>›</button>
           <span class="host-only-note" id="hostOnlyHint" style="display:none; margin-left:12px;">You are the host · Use
             arrows to turn pages</span>
+        </div>
+      </div>
+
+      <!-- ===== LOCAL PANEL (MP4) ===== -->
+      <div class="local-panel" id="localPanel" style="display:none;">
+        <div class="video-placeholder" id="localPlaceholder">
+          <div class="video-placeholder-icon">🎥</div>
+          <p>No local video loaded</p>
+        </div>
+        <video id="localPlayer" controls style="width:100%; height:auto; display:none; border-radius:12px;"></video>
+        <div class="watch-controls">
+          <div class="reaction-bar">
+            <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+            <button class="reaction-btn" onclick="sendReaction('😮')">😮</button>
+            <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+            <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+            <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+            <button class="reaction-btn" onclick="sendReaction('💯')">💯</button>
+          </div>
         </div>
       </div>
 
